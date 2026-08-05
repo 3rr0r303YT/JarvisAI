@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0A0E14"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="JARVIS"
+        android:textColor="#00E5FF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/apiKeyInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Gemini API-Key hier einfügen"
+        android:textColorHint="#556"
+        android:textColor="#FFFFFF"
+        android:inputType="textPassword"
+        android:padding="10dp"
+        android:background="#1A2230"
+        android:layout_marginBottom="12dp" />
+
+    <ScrollView
+        android:id="@+id/chatScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#101620">
+
+        <TextView
+            android:id="@+id/chatText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:textColor="#D0D8E0"
+            android:textSize="15sp"
+            android:text="Sag etwas zu Jarvis..." />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bereit"
+        android:textColor="#7FDBFF"
+        android:gravity="center"
+        android:padding="8dp" />
+
+    <Button
+        android:id="@+id/micButton"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="🎤 Sprich mit Jarvis"
+        android:textSize="16sp"
+        android:backgroundTint="#00E5FF"
+        android:textColor="#000000"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/listenToggleButton"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="👂 Dauerzuhören starten"
+        android:textSize="14sp"
+        android:backgroundTint="#1A2230"
+        android:textColor="#00E5FF" />
+
+</LinearLayout>
