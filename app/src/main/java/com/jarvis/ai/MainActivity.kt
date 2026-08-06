@@ -1,12 +1,8 @@
 package com.jarvis.ai
 
 import android.Manifest
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -14,7 +10,6 @@ import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -24,136 +19,120 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
-    private lateinit var speechRecognizer: SpeechRecognizer
-    private lateinit var tts: TextToSpeech
-    private lateinit var chatText: TextView
-    private lateinit var statusText: TextView
-    private lateinit var micButton: Button
-    private lateinit var apiKeyInput: EditText
-    private lateinit var chatScroll: ScrollView
-    private lateinit var listenToggleButton: Button
-    private var isBackgroundListening = false
+    private lateinit var tvStatus: TextView
+    private lateinit var tvLog: TextView
+    private lateinit var etApiKey: EditText
+    private lateinit var btnSpeak: Button
+
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var tts: TextToSpeech? = null
+    private val aiService = AIService()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        chatText = findViewById(R.id.chatText)
-        statusText = findViewById(R.id.statusText)
-        micButton = findViewById(R.id.micButton)
-        apiKeyInput = findViewById(R.id.apiKeyInput)
-        chatScroll = findViewById(R.id.chatScroll)
-        listenToggleButton = findViewById(R.id.listenToggleButton)
-
-        listenToggleButton.setOnClickListener {
-            isBackgroundListening = !isBackgroundListening
-            if (isBackgroundListening) {
-                val serviceIntent = Intent(this, JarvisListenerService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(serviceIntent)
-                } else {
-                    startService(serviceIntent)
-                }
-                listenToggleButton.text = "👂 Dauerzuhören stoppen"
-                statusText.text = "Sag \"Jarvis\" gefolgt von deinem Befehl"
-            } else {
-                stopService(Intent(this, JarvisListenerService::class.java))
-                listenToggleButton.text = "👂 Dauerzuhören starten"
-                statusText.text = "Bereit"
-            }
-        }
+        tvStatus = findViewById(R.id.tvStatus)
+        tvLog = findViewById(R.id.tvLog)
+        etApiKey = findViewById(R.id.etApiKey)
+        btnSpeak = findViewById(R.id.btnSpeak)
 
         tts = TextToSpeech(this, this)
 
-        val neededPermissions = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CALL_PHONE)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            neededPermissions.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        val missing = neededPermissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-        if (missing.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, missing.toTypedArray(), 1)
-        }
+        checkAndRequestPermissions()
 
-        registerReceiver(
-            object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent?) {
-                    val command = intent?.getStringExtra("command") ?: return
-                    appendChat("Du (Hintergrund)", command)
-                    sendToAI(command)
-                }
-            },
-            IntentFilter("com.jarvis.ai.VOICE_COMMAND"),
-            Context.RECEIVER_NOT_EXPORTED.takeIf { Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU } ?: 0
-        )
-
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
-        speechRecognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {
-                statusText.text = "Ich höre zu..."
-            }
-
-            override fun onResults(results: Bundle?) {
-                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                val spokenText = matches?.firstOrNull()
-                if (!spokenText.isNullOrBlank()) {
-                    appendChat("Du", spokenText)
-                    if (CommandHandler.tryOpenApp(this@MainActivity, spokenText)) {
-                        appendChat("Jarvis", "App wird geöffnet.")
-                    } else if (CommandHandler.tryMakeCall(this@MainActivity, spokenText)) {
-                        appendChat("Jarvis", "Rufe an...")
-                    } else {
-                        sendToAI(spokenText)
-                    }
-                } else {
-                    statusText.text = "Nichts verstanden. Nochmal."
-                }
-            }
-
-            override fun onError(error: Int) {
-                statusText.text = "Fehler bei der Spracherkennung ($error)"
-            }
-
-            override fun onBeginningOfSpeech() {}
-            override fun onRmsChanged(rmsdB: Float) {}
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() { statusText.text = "Verarbeite..." }
-            override fun onPartialResults(partialResults: Bundle?) {}
-            override fun onEvent(eventType: Int, params: Bundle?) {}
-        })
-
-        micButton.setOnClickListener {
+        btnSpeak.setOnClickListener {
             startListening()
         }
     }
 
-    private fun startListening() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Sprich jetzt mit Jarvis...")
+    private fun checkAndRequestPermissions() {
+        val neededPermissions = arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.READ_CONTACTS
+        )
+
+        val missing = neededPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
-        speechRecognizer.startListening(intent)
+
+        if (missing.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, missing.toTypedArray(), 101)
+        }
     }
 
-    private fun sendToAI(userText: String) {
-        val prefs = getSharedPreferences("JarvisSettings", Context.MODE_PRIVATE)
-        var apiKey = prefs.getString("API_KEY", "")?.trim() ?: ""
+    private fun startListening() {
+        if (SpeechRecognizer.isRecognitionAvailable(this)) {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN.toString())
+            }
 
-        if (apiKey.isBlank()) {
-            apiKey = apiKeyInput.text.toString().trim()
+            speechRecognizer?.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {
+                    tvStatus.text = "Zuhören..."
+                }
+                override fun onBeginningOfSpeech() {}
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onEndOfSpeech() {
+                    tvStatus.text = "Verarbeite..."
+                }
+                override fun onError(error: Int) {
+                    tvStatus.text = "Fehler bei der Spracheingabe"
+                }
+                override fun onResults(results: Bundle?) {
+                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    if (!matches.isNullOrEmpty()) {
+                        val userText = matches[0]
+                        tvLog.append("\nDu: $userText")
+                        processUserPrompt(userText)
+                    }
+                }
+                override fun onPartialResults(partialResults: Bundle?) {}
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+            })
+
+            speechRecognizer?.startListening(intent)
+        } else {
+            Toast.makeText(this, "Spracherkennung nicht verfügbar", Toast.LENGTH_SHORT).show()
         }
+    }
 
-        if (apiKey.isBlank()) {
-            Toast.makeText(this, "Bitte gib einen API-Key ein!", Toast.LENGTH_LONG).show()
-            statusText.text = "Kein API Key hinterlegt"
+    private fun processUserPrompt(prompt: String) {
+        // 1. TikTok / Bildschirm-Aktionen
+        val handledCustom = CommandHandler.handleCustomCommands(this, prompt) { aiContextPrompt ->
+            if (aiContextPrompt != null) {
+                sendToAI(aiContextPrompt)
+            }
+        }
+        if (handledCustom) return
+
+        // 2. Anrufen
+        if (CommandHandler.tryMakeCall(this, prompt)) {
+            speak("Wähle Nummer...")
             return
         }
 
-        val savedProviderStr = prefs.getString("SELECTED_PROVIDER", "") ?: ""
+        // 3. App öffnen
+        if (CommandHandler.tryOpenApp(this, prompt)) {
+            speak("Öffne App...")
+            return
+        }
 
-        // 🔥 AUTO-DETECTION INKLUSIVE GROQ 🔥
+        // 4. KI befragen
+        sendToAI(prompt)
+    }
+
+    private fun sendToAI(prompt: String) {
+        val apiKey = etApiKey.text.toString().trim()
+        if (apiKey.isEmpty()) {
+            Toast.makeText(this, "Bitte API-Key eingeben", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val provider = when {
             apiKey.startsWith("gsk_") -> AIProvider.GROQ
             apiKey.startsWith("sk-ant-") -> AIProvider.CLAUDE
@@ -161,42 +140,32 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             else -> AIProvider.GEMINI
         }
 
-        statusText.text = "Jarvis denkt nach ($provider)..."
-
-        val aiService = AIService()
-        aiService.sendMessage(provider, apiKey, userText) { result ->
+        aiService.sendMessage(provider, apiKey, prompt) { result ->
             runOnUiThread {
-                result.onSuccess { reply ->
-                    statusText.text = "Bereit"
-                    appendChat("Jarvis", reply)
-                    speak(reply)
+                result.onSuccess { response ->
+                    tvLog.append("\nJarvis: $response")
+                    speak(response)
                 }.onFailure { error ->
-                    statusText.text = "Fehler"
-                    appendChat("Jarvis", "Fehler: ${error.message}")
+                    tvLog.append("\nJarvis Fehler: ${error.message}")
                 }
             }
         }
     }
 
     private fun speak(text: String) {
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-    }
-
-    private fun appendChat(sender: String, text: String) {
-        chatText.append("\n\n$sender: $text")
-        chatScroll.post { chatScroll.fullScroll(ScrollView.FOCUS_DOWN) }
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.GERMAN
+            tts?.language = Locale.GERMAN
         }
     }
 
     override fun onDestroy() {
-        speechRecognizer.destroy()
-        tts.stop()
-        tts.shutdown()
+        speechRecognizer?.destroy()
+        tts?.stop()
+        tts?.shutdown()
         super.onDestroy()
     }
 }
