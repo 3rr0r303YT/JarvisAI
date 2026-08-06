@@ -141,25 +141,28 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val prefs = getSharedPreferences("JarvisSettings", Context.MODE_PRIVATE)
         var apiKey = prefs.getString("API_KEY", "")?.trim() ?: ""
 
-        // Falls in den Einstellungen kein Key eingetragen ist, versuche das Eingabefeld als Fallback
         if (apiKey.isBlank()) {
             apiKey = apiKeyInput.text.toString().trim()
         }
 
         if (apiKey.isBlank()) {
-            Toast.makeText(this, "Bitte gib einen API-Key in den Einstellungen ein!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Bitte gib einen API-Key ein!", Toast.LENGTH_LONG).show()
             statusText.text = "Kein API Key hinterlegt"
             return
         }
 
-        val providerStr = prefs.getString("SELECTED_PROVIDER", "GEMINI") ?: "GEMINI"
-        val provider = try {
-            AIProvider.valueOf(providerStr)
-        } catch (e: Exception) {
-            AIProvider.GEMINI
+        val savedProviderStr = prefs.getString("SELECTED_PROVIDER", "") ?: ""
+
+        // 🔥 AUTO-DETECTION DER KI ANHAND DES API-KEYS 🔥
+        val provider = when {
+            apiKey.startsWith("sk-ant-") -> AIProvider.CLAUDE
+            apiKey.startsWith("sk-") -> AIProvider.OPENAI
+            savedProviderStr == "OPENAI" -> AIProvider.OPENAI
+            savedProviderStr == "CLAUDE" -> AIProvider.CLAUDE
+            else -> AIProvider.GEMINI
         }
 
-        statusText.text = "Jarvis denkt nach ($providerStr)..."
+        statusText.text = "Jarvis denkt nach ($provider)..."
 
         val aiService = AIService()
         aiService.sendMessage(provider, apiKey, userText) { result ->
