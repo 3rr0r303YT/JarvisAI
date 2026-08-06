@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.jarvis.ai">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -16,7 +14,7 @@
         android:theme="@style/Theme.Jarvis">
 
         <activity
-            android:name="com.jarvis.ai.MainActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -25,15 +23,12 @@
         </activity>
 
         <service
-            android:name="com.jarvis.ai.JarvisAccessibilityService"
+            android:name=".JarvisAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.accessibility.action.AccessibilityService" />
             </intent-filter>
-            <meta-data
-                android:name="android.accessibility.service"
-                android:resource="@xml/accessibility_service_config" />
         </service>
 
     </application>
