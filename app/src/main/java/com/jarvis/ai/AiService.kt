@@ -36,7 +36,7 @@ class AIService {
     private fun sendOpenAIRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
         val url = "https://api.openai.com/v1/chat/completions"
         val json = JSONObject().apply {
-            put("model", "gpt-3.5-turbo")
+            put("model", "gpt-4o-mini") // Aktuelles Standard-Modell für OpenAI
             put("messages", JSONArray().put(JSONObject().apply {
                 put("role", "user")
                 put("content", prompt)
@@ -124,7 +124,9 @@ class AIService {
                     val json = JSONObject(body)
                     callback(Result.success(parseResponse(json)))
                 } else {
-                    callback(Result.failure(Exception("API Fehler (${response.code})")))
+                    // Zeigt die genaue Antwort/Fehlermeldung der API an
+                    val errorDetail = body ?: response.message
+                    callback(Result.failure(Exception("(${response.code}): $errorDetail")))
                 }
             } catch (e: Exception) {
                 callback(Result.failure(e))
