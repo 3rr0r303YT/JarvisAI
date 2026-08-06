@@ -8,7 +8,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 enum class AIProvider {
-    OPENAI, CLAUDE, GEMINI
+    OPENAI, CLAUDE, GEMINI, GROQ
 }
 
 class AIService {
@@ -27,9 +27,35 @@ class AIService {
         }
 
         when (provider) {
+            AIProvider.GROQ -> sendGroqRequest(apiKey, prompt, callback)
             AIProvider.OPENAI -> sendOpenAIRequest(apiKey, prompt, callback)
             AIProvider.CLAUDE -> sendClaudeRequest(apiKey, prompt, callback)
             AIProvider.GEMINI -> sendGeminiRequest(apiKey, prompt, callback)
+        }
+    }
+
+    private fun sendGroqRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
+        val url = "https://api.groq.com/openai/v1/chat/completions"
+        val json = JSONObject().apply {
+            put("model", "llama-3.3-70b-versatile") // Kostenloses High-End Modell
+            put("messages", JSONArray().put(JSONObject().apply {
+                put("role", "user")
+                put("content", prompt)
+            }))
+        }
+
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $apiKey")
+            .addHeader("Content-Type", "application/json")
+            .post(json.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        executeRequest(request, callback) { responseJson ->
+            responseJson.getJSONArray("choices")
+                .getJSONObject(0)
+                .getJSONObject("message")
+                .getString("content")
         }
     }
 
@@ -85,7 +111,6 @@ class AIService {
     }
 
     private fun sendGeminiRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
-        // gemini-2.0-flash-lite läuft uneingeschränkt im Free Tier
         val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=$apiKey"
         val json = JSONObject().apply {
             put("contents", JSONArray().put(JSONObject().apply {
