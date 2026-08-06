@@ -6,7 +6,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
 
 enum class AIProvider {
     OPENAI, CLAUDE, GEMINI
@@ -23,7 +22,7 @@ class AIService {
         callback: (Result<String>) -> Unit
     ) {
         if (apiKey.isBlank()) {
-            callback(Result.failure(Exception("Bitte gib einen gültigen API Key in den Einstellungen ein!")))
+            callback(Result.failure(Exception("Kein API Key hinterlegt! Bitte in den Einstellungen eingeben.")))
             return
         }
 
@@ -34,7 +33,6 @@ class AIService {
         }
     }
 
-    // --- 1. OpenAI (ChatGPT) ---
     private fun sendOpenAIRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
         val url = "https://api.openai.com/v1/chat/completions"
         val json = JSONObject().apply {
@@ -52,15 +50,14 @@ class AIService {
             .post(json.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
-        executeRequest(request) { responseJson ->
+        executeRequest(request, callback) { responseJson ->
             responseJson.getJSONArray("choices")
                 .getJSONObject(0)
                 .getJSONObject("message")
                 .getString("content")
-        }{ callback(it) }
+        }
     }
 
-    // --- 2. Anthropic Claude ---
     private fun sendClaudeRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
         val url = "https://api.anthropic.com/v1/messages"
         val json = JSONObject().apply {
@@ -80,14 +77,13 @@ class AIService {
             .post(json.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
-        executeRequest(request) { responseJson ->
+        executeRequest(request, callback) { responseJson ->
             responseJson.getJSONArray("content")
                 .getJSONObject(0)
                 .getString("text")
-        }{ callback(it) }
+        }
     }
 
-    // --- 3. Google Gemini ---
     private fun sendGeminiRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
         val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
         val json = JSONObject().apply {
@@ -104,20 +100,20 @@ class AIService {
             .post(json.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
-        executeRequest(request) { responseJson ->
+        executeRequest(request, callback) { responseJson ->
             responseJson.getJSONArray("candidates")
                 .getJSONObject(0)
                 .getJSONObject("content")
                 .getJSONArray("parts")
                 .getJSONObject(0)
                 .getString("text")
-        }{ callback(it) }
+        }
     }
 
     private fun executeRequest(
         request: Request,
-        parseResponse: (JSONObject) -> String,
-        callback: (Result<String>) -> Unit
+        callback: (Result<String>) -> Unit,
+        parseResponse: (JSONObject) -> String
     ) {
         Thread {
             try {
@@ -126,10 +122,9 @@ class AIService {
 
                 if (response.isSuccessful && body != null) {
                     val json = JSONObject(body)
-                    val text = parseResponse(json)
-                    callback(Result.success(text))
+                    callback(Result.success(parseResponse(json)))
                 } else {
-                    callback(Result.failure(Exception("API Fehler (${response.code}): ${response.message}")))
+                    callback(Result.failure(Exception("API Fehler (${response.code})")))
                 }
             } catch (e: Exception) {
                 callback(Result.failure(e))
