@@ -39,7 +39,13 @@ class JarvisListenerService : Service() {
         if (!isRunning) return
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN.toString())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN.toLanguageTag())
+        }
+        // Cancel any ongoing recognition before starting a new one to avoid stacking listeners
+        try {
+            speechRecognizer?.cancel()
+        } catch (e: Exception) {
+            // ignore
         }
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle?) {
@@ -49,6 +55,7 @@ class JarvisListenerService : Service() {
                     val command = text.substringAfter("jarvis").trim()
                     if (command.isNotBlank()) handleWakeCommand(command)
                 }
+                // small delay could be added here if needed
                 listenLoop()
             }
             override fun onError(error: Int) { listenLoop() }
@@ -66,7 +73,7 @@ class JarvisListenerService : Service() {
     private fun handleWakeCommand(command: String) {
         if (CommandHandler.tryOpenApp(this, command)) return
         if (CommandHandler.tryMakeCall(this, command)) return
-        // Kein Geräte-Befehl erkannt -> an MainActivity weiterreichen für Gemini
+        // Kein Geräte-Befehl erkannt -> an MainActivity weiterreichen für KI-Verarbeitung
         val broadcast = Intent("com.jarvis.ai.VOICE_COMMAND")
         broadcast.putExtra("command", command)
         sendBroadcast(broadcast)

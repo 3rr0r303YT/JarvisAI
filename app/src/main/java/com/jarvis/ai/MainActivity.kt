@@ -1,7 +1,10 @@
 package com.jarvis.ai
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognitionListener
@@ -28,6 +31,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
     private val aiService = AIService()
 
+    // BroadcastReceiver to receive wake commands from the background listener service
+    private val voiceReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val command = intent?.getStringExtra("command") ?: return
+            runOnUiThread {
+                tvLog.append("\nJarvis Wake: $command")
+                processUserPrompt(command)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -40,6 +54,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         tts = TextToSpeech(this, this)
 
         checkAndRequestPermissions()
+
+        // Register receiver for voice commands from background service
+        registerReceiver(voiceReceiver, IntentFilter("com.jarvis.ai.VOICE_COMMAND"))
 
         // Wenn bereits Berechtigung besteht, starte den Listener-Dienst
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -84,7 +101,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN.toString())
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN.toLanguageTag())
             }
 
             speechRecognizer?.setRecognitionListener(object : RecognitionListener {
@@ -180,6 +197,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     override fun onDestroy() {
+        try {
+            unregisterReceiver(voiceReceiver)
+        } catch (e: Exception) {
+            // ignore
+        }
         speechRecognizer?.destroy()
         tts?.stop()
         tts?.shutdown()
