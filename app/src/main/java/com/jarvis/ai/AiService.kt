@@ -36,7 +36,7 @@ class AIService {
     private fun sendOpenAIRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
         val url = "https://api.openai.com/v1/chat/completions"
         val json = JSONObject().apply {
-            put("model", "gpt-4o-mini") // Aktuelles Standard-Modell für OpenAI
+            put("model", "gpt-4o-mini")
             put("messages", JSONArray().put(JSONObject().apply {
                 put("role", "user")
                 put("content", prompt)
@@ -85,7 +85,8 @@ class AIService {
     }
 
     private fun sendGeminiRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+        // Aktuelles Gemini-Modell für v1beta
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
         val json = JSONObject().apply {
             put("contents", JSONArray().put(JSONObject().apply {
                 put("parts", JSONArray().put(JSONObject().apply {
@@ -124,7 +125,6 @@ class AIService {
                     val json = JSONObject(body)
                     callback(Result.success(parseResponse(json)))
                 } else {
-                    // Zeigt die genaue Antwort/Fehlermeldung der API an
                     val errorDetail = body ?: response.message
                     callback(Result.failure(Exception("(${response.code}): $errorDetail")))
                 }
