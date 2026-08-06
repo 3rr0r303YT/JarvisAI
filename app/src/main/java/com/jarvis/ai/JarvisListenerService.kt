@@ -39,7 +39,7 @@ class JarvisListenerService : Service() {
         if (!isRunning) return
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.GERMAN.toString())
         }
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle?) {

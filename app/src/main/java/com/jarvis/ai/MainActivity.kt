@@ -41,6 +41,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         checkAndRequestPermissions()
 
+        // Wenn bereits Berechtigung besteht, starte den Listener-Dienst
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            ContextCompat.startForegroundService(this, Intent(this, JarvisListenerService::class.java))
+        }
+
         btnSpeak.setOnClickListener {
             startListening()
         }
@@ -50,7 +55,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val neededPermissions = arrayOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CALL_PHONE,
-            Manifest.permission.READ_CONTACTS
+            Manifest.permission.READ_CONTACTS,
+            // POST_NOTIFICATIONS ist ab Android 13 eine Laufzeitberechtigung
+            "android.permission.POST_NOTIFICATIONS"
         )
 
         val missing = neededPermissions.filter {
@@ -59,6 +66,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         if (missing.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, missing.toTypedArray(), 101)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101) {
+            // Falls RECORD_AUDIO gewährt: starte den Background-Listener als Vordergrunddienst
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                ContextCompat.startForegroundService(this, Intent(this, JarvisListenerService::class.java))
+            }
         }
     }
 
