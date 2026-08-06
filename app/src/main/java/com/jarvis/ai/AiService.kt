@@ -85,8 +85,8 @@ class AIService {
     }
 
     private fun sendGeminiRequest(apiKey: String, prompt: String, callback: (Result<String>) -> Unit) {
-        // Aktuelles stabiles Gemini 2.0 Flash Modell
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
+        // gemini-2.0-flash-lite läuft uneingeschränkt im Free Tier
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=$apiKey"
         val json = JSONObject().apply {
             put("contents", JSONArray().put(JSONObject().apply {
                 put("parts", JSONArray().put(JSONObject().apply {
