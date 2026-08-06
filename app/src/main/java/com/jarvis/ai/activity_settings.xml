@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Jarvis AI Einstellungen"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wähle deinen KI-Anbieter:"
+        android:textSize="16sp" />
+
+    <RadioGroup
+        android:id="@+id/rgProvider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp">
+
+        <RadioButton
+            android:id="@+id/rbGemini"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Google Gemini"
+            android:checked="true" />
+
+        <RadioButton
+            android:id="@+id/rbOpenAi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OpenAI (ChatGPT)" />
+
+        <RadioButton
+            android:id="@+id/rbClaude"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Anthropic Claude" />
+    </RadioGroup>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="API Key hier einfügen:"
+        android:textSize="16sp" />
+
+    <EditText
+        android:id="@+id/etApiKey"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="API Key eintragen..."
+        android:inputType="textPassword"
+        android:layout_marginBottom="30dp" />
+
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Speichern" />
+
+</LinearLayout>
