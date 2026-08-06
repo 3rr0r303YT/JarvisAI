@@ -37,6 +37,8 @@
             android:name=".JarvisListenerService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <activity android:name=".SettingsActivity" android:exported="false" />
     </application>
 
 </manifest>
