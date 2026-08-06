@@ -153,12 +153,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         val savedProviderStr = prefs.getString("SELECTED_PROVIDER", "") ?: ""
 
-        // 🔥 AUTO-DETECTION DER KI ANHAND DES API-KEYS 🔥
+        // 🔥 AUTO-DETECTION INKLUSIVE GROQ 🔥
         val provider = when {
+            apiKey.startsWith("gsk_") -> AIProvider.GROQ
             apiKey.startsWith("sk-ant-") -> AIProvider.CLAUDE
             apiKey.startsWith("sk-") -> AIProvider.OPENAI
-            savedProviderStr == "OPENAI" -> AIProvider.OPENAI
-            savedProviderStr == "CLAUDE" -> AIProvider.CLAUDE
             else -> AIProvider.GEMINI
         }
 
