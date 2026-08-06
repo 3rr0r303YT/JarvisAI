@@ -22,7 +22,6 @@ object CommandHandler {
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(launchIntent)
 
-                // 3 Sekunden warten, bis TikTok geladen ist, dann Bildschirm auslesen
                 Handler(Looper.getMainLooper()).postDelayed({
                     val screenText = JarvisAccessibilityService.instance?.readScreenText()
                     if (!screenText.isNullOrEmpty()) {
@@ -32,6 +31,27 @@ object CommandHandler {
                     }
                 }, 3000)
                 return true
+            }
+        }
+        return false
+    }
+
+    fun tryOpenApp(context: Context, command: String): Boolean {
+        val lower = command.lowercase()
+        if (lower.contains("öffne") || lower.contains("starte")) {
+            val appName = lower.replace("öffne", "").replace("starte", "").trim()
+            val pm = context.packageManager
+            val packages = pm.getInstalledApplications(0)
+            for (app in packages) {
+                val label = pm.getApplicationLabel(app).toString().lowercase()
+                if (label.contains(appName) && appName.length > 2) {
+                    val launchIntent = pm.getLaunchIntentForPackage(app.packageName)
+                    if (launchIntent != null) {
+                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(launchIntent)
+                        return true
+                    }
+                }
             }
         }
         return false
